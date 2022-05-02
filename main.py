@@ -17,7 +17,6 @@ sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
 
 playlist_link = input("Enter Spotify Playlist Link: ")
 playlist_URI = playlist_link.split("/")[-1].split("?")[0]
-print(playlist_URI)
 track_uris = []
 if len(playlist_URI) != 22:
     exit("Playlist was not found!")
@@ -80,7 +79,7 @@ def download_audio(_id, name, artist):
     audio.save()
     rename = re.sub(r'[\\/*?:"<>|]', "", str(name))
     rename = rename[:255]
-    filenames = next(os.walk("./out"), (None, None, []))[2]
+    filenames = next(os.walk(dir_path), (None, None, []))[2]
     while rename + ".mp3" in filenames:
         rename += "1"
     os.rename(save_location, dir_path + "/" + rename + ".mp3")
