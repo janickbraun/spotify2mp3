@@ -12,7 +12,7 @@ if not os.path.exists(dir_path):
 if len(os.listdir(dir_path)) != 0:
     exit("Out folder has to be empty!")
 
-client_credentials_manager = SpotifyClientCredentials(client_id="0029456de7df496992c2c1db4e3a47f1", client_secret="2ac7293127a64cb59e80f00fa4bc470b")
+client_credentials_manager = SpotifyClientCredentials(client_id="yourclientid", client_secret="yourclientsecret")
 sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
 
 playlist_link = input("Enter Spotify Playlist Link: ")
