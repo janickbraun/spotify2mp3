@@ -5,6 +5,7 @@ Python script to convert Spotify playlists to mp3 files
 - First of all you have to create a new Spotify developer application: [Click here](https://developer.spotify.com/dashboard)
 - When you created it, you have to copy the client ID and the client secret of your Spotify developer application
 - After that, you will have to edit the first and second line of the "main.py" file and paste your client ID and client secret
+- Make sure that you have installed all these libraries: [spotipy](https://pypi.org/project/spotipy), [youtube_dl](https://pypi.org/project/youtube_dl), [mutagen](https://pypi.org/project/mutagen), [youtube_search](https://pypi.org/project/youtube-search), [urllib](https://pypi.org/project/urllib3)
 - Make sure there is no directory called "out" in the directory where the "main.py" file is located because the script will create the .mp3 files in the "out" directory
 - Now you can finally execute the "main.py" file
 - After you started the script the console will pop up, and you will have to enter the link of your Spotify playlist but make sure the playlist is public
