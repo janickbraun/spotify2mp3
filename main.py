@@ -1,5 +1,5 @@
-client_id = ""
-client_secret = ""
+client_id = "ENTER_YOUR_CLIENT_ID_HERE"
+client_secret = "ENTER_YOUR_CLIENT_SECRET_HERE"
 
 import spotipy, time, os, re, youtube_dl
 from mutagen.id3 import ID3, APIC
