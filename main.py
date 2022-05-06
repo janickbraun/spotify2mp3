@@ -1,3 +1,6 @@
+client_id = ""
+client_secret = ""
+
 import spotipy, time, os, re, youtube_dl
 from mutagen.id3 import ID3, APIC
 from mutagen.mp3 import MP3
@@ -15,7 +18,7 @@ if not os.path.exists(dir_path):
 if len(os.listdir(dir_path)) != 0:
     exit("Out folder has to be empty!")
 
-client_credentials_manager = SpotifyClientCredentials(client_id="yourclientid", client_secret="yourclientsecret")
+client_credentials_manager = SpotifyClientCredentials(client_id=client_id, client_secret=client_secret)
 sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
 
 playlist_link = input("Enter Spotify Playlist Link: ")
