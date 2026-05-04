@@ -1,22 +1,22 @@
 client_id = "ENTER_YOUR_CLIENT_ID_HERE"
 client_secret = "ENTER_YOUR_CLIENT_SECRET_HERE"
 
-import spotipy, time, os, re, youtube_dl
+import spotipy, time, os, re, yt_dlp as youtube_dl
 from mutagen.id3 import ID3, APIC
 from mutagen.mp3 import MP3
 from spotipy.oauth2 import SpotifyClientCredentials
 from youtube_search import YoutubeSearch
 from mutagen.easyid3 import EasyID3
 from collections import Counter
-import urllib.request
+import urllib.request, traceback, requests, ssl
+ssl._create_default_https_context = ssl._create_unverified_context
 
 dir_path = os.path.dirname(os.path.realpath(__file__)) + "/out"
 
 if not os.path.exists(dir_path):
     os.makedirs(dir_path)
 
-if len(os.listdir(dir_path)) != 0:
-    exit("Out folder has to be empty!")
+# Out folder check removed to allow resuming downloads
 
 client_credentials_manager = SpotifyClientCredentials(client_id=client_id, client_secret=client_secret)
 sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
@@ -66,9 +66,10 @@ def download_audio(_id, name, artist, album, url, number):
             'preferredcodec': 'mp3',
             'preferredquality': '192',
         }],
-        'ffmpeg-location': dir_path,
+        # 'ffmpeg-location': dir_path, # Removed to use system ffmpeg
         'outtmpl': dir_path + "/%(id)s.%(ext)s",
-        'keepvideo': 'False'
+        'keepvideo': False,
+        'no_warnings': True,
     }
     meta = youtube_dl.YoutubeDL(ydl_opts).extract_info(_id)
     save_location = dir_path + "/" + meta['id'] + ".mp3"
@@ -90,28 +91,67 @@ def download_audio(_id, name, artist, album, url, number):
     audio["tracknumber"] = u"" + str(number)
     audio.save()
     audio = MP3(save_location, ID3=ID3)
-    urllib.request.urlretrieve(url, dir_path + "/" + meta["id"] + ".jpg")
-    audio.tags.add(
-        APIC(
-            encoding=0,
-            mime='image/jpg',
-            type=3,
-            desc=u'Cover',
-            data=open(dir_path + "/" + meta["id"] + ".jpg", "rb").read()
-        )
-    )
-    audio.save()
+    # Wait for file to be ready
+    if not os.path.exists(save_location):
+        time.sleep(2) # Give it a bit of time if needed
+        if not os.path.exists(save_location):
+            raise Exception(f"MP3 file not found at {save_location}")
+
+    cover_path = dir_path + "/" + meta["id"] + ".jpg"
     try:
-        os.remove(dir_path + "/" + meta["id"] + ".jpg")
-    except OSError:
-        print("could not remove image")
-        pass
-    rename = re.sub(r'[\\/*?:"<>|]', "", str(name))
-    rename = rename[:200]
-    filenames = next(os.walk(dir_path), (None, None, []))[2]
-    while rename + ".mp3" in filenames:
-        rename += "1"
-    os.rename(save_location, dir_path + "/" + rename + ".mp3")
+        response = requests.get(url, timeout=10)
+        with open(cover_path, 'wb') as f:
+            f.write(response.content)
+    except Exception as e:
+        print(f"Warning: Could not download cover art: {e}")
+
+    if os.path.exists(cover_path):
+        try:
+            audio.tags.add(
+                APIC(
+                    encoding=0,
+                    mime='image/jpg',
+                    type=3,
+                    desc=u'Cover',
+                    data=open(cover_path, "rb").read()
+                )
+            )
+            audio.save()
+        except Exception as e:
+            print(f"Warning: Could not add cover art to metadata: {e}")
+        
+        try:
+            os.remove(cover_path)
+        except OSError:
+            pass
+    else:
+        audio.save()
+        print("Warning: Cover art file not found, skipping...")
+    # No removal here, handled above
+    pass
+    # Refined renaming logic
+    clean_name = re.sub(r'[\\/*?:"<>|]', "", str(name))
+    clean_artist = re.sub(r'[\\/*?:"<>|]', "", str(artist))
+    
+    if album and album != name:
+        clean_album = re.sub(r'[\\/*?:"<>|]', "", str(album))
+        rename = f"{clean_artist} - {clean_name} ({clean_album})"
+    else:
+        rename = f"{clean_artist} - {clean_name}"
+    
+    rename = rename[:200] # Limit length
+    
+    final_path = os.path.join(dir_path, rename + ".mp3")
+    counter = 1
+    while os.path.exists(final_path):
+        final_path = os.path.join(dir_path, f"{rename} ({counter}).mp3")
+        counter += 1
+    
+    if os.path.exists(save_location):
+        os.rename(save_location, final_path)
+        print(f"Successfully downloaded and renamed: {os.path.basename(final_path)}")
+    else:
+        print(f"Error: Downloaded file not found at {save_location}")
 
 
 process = 1
@@ -123,7 +163,9 @@ for i in infos:
         download_audio(_id=i["id"], name=i["name"], artist=i["artist"], album=i["album"], url=i["image"], number=process)
     except Exception:
         songs_error.append(i["id"])
-        print("Error occurred. Added song to songs with error query.")
+        print(f"Error occurred for song {i['id']}:")
+        traceback.print_exc()
+        print("Added song to songs with error query.")
     time.sleep(10)
     process += 1
 
